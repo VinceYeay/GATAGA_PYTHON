@@ -34,6 +34,23 @@ stars = [pygame.Rect(random.randint(0, WIDTH), random.randint(0, HEIGHT), 2, 2) 
 # Sons
 # pygame.mixer.Sound("shoot.wav")
 
+class Explosion:
+    def __init__(self, center):
+        self.center = center
+        self.radius = 1
+        self.max_radius = 30
+        self.finished = False
+
+    def update(self):
+        self.radius += 2
+        if self.radius >= self.max_radius:
+            self.finished = True
+
+    def draw(self):
+        if not self.finished:
+            pygame.draw.circle(screen, RED, self.center, self.radius, 2)
+
+
 # Joueur
 class Player:
     def __init__(self):
@@ -165,7 +182,8 @@ def main():
     score = 0
     timer = 0
     spawn_delay = 60
-
+    explosions = []
+    enemies_to_remove = []
     show_menu()
 
     running = True
@@ -211,19 +229,21 @@ def main():
             if p.bottom < 0:
                 player.projectiles.remove(p)
 
-        enemies_to_remove = []
+        
 
         for e in enemies:
             e.move(player)
             e.draw()
 
-            # Check collision with player (priority!)
+            # Check if touches player
             if e.rect.colliderect(player.rect):
+                explosions.append(Explosion(player.rect.center))
                 player.lives -= 1
                 player.double_shot = False
                 player.powered_up = False
                 enemies_to_remove.append(e)
-                continue  # Don't check projectiles if enemy touched player
+                continue
+
 
             # Check if enemy went off screen
             if e.rect.top > HEIGHT:
@@ -264,6 +284,7 @@ def main():
             for p in boss.projectiles[:]:
                 p.y += 5
                 if p.colliderect(player.rect):
+                    explosions.append(Explosion(player.rect.center))
                     player.lives -= 1
                     player.double_shot = False
                     player.powered_up = False
@@ -284,6 +305,11 @@ def main():
         screen.blit(time_text, (10, 40))
         if player.lives <= 0:
             running = False
+        for ex in explosions[:]:
+            ex.update()
+            ex.draw()
+            if ex.finished:
+                explosions.remove(ex)
 
         pygame.display.flip()
 
